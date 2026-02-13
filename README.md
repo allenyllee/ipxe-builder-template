@@ -7,6 +7,7 @@
 - 在使用者自己的 fork repo 內編譯 `ipxe.efi`
 - 支援可選的自訂 Root CA 憑證（TRUST）
 - 產生 artifact（`ipxe-efi`）供下載
+- 內建 10 分鐘延遲清理 workflow（`cleanup-ipxe-artifacts.yml`）
 
 ## 必要檔案
 
