@@ -7,6 +7,10 @@ on:
         description: base64 encoded iPXE script
         required: true
         type: string
+      ca_cert_b64:
+        description: optional base64 encoded root CA certificate in PEM
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -46,7 +50,17 @@ jobs:
       - name: Build EFI binary
         working-directory: ipxe/src
         run: |
-          make -j"$(nproc)" bin-x86_64-efi/ipxe.efi EMBED=../boot.ipxe
+          BUILD_ARGS=(bin-x86_64-efi/ipxe.efi EMBED=../boot.ipxe)
+
+          if [ -n "${{ github.event.inputs.ca_cert_b64 }}" ]; then
+            echo "${{ github.event.inputs.ca_cert_b64 }}" | base64 -d > ../ca.crt
+            BUILD_ARGS+=(TRUST=../ca.crt)
+            echo "Using uploaded root CA certificate."
+          else
+            echo "No custom root CA certificate provided."
+          fi
+
+          make -j"$(nproc)" "${BUILD_ARGS[@]}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
