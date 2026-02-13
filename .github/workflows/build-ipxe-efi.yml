@@ -1,0 +1,56 @@
+name: Build iPXE EFI
+
+on:
+  workflow_dispatch:
+    inputs:
+      script_b64:
+        description: base64 encoded iPXE script
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            binutils \
+            mtools \
+            genisoimage \
+            liblzma-dev \
+            libiberty-dev \
+            xz-utils \
+            gcc-multilib
+
+      - name: Checkout iPXE source
+        uses: actions/checkout@v4
+        with:
+          repository: ipxe/ipxe
+          path: ipxe
+
+      - name: Write embedded script
+        run: |
+          echo "${{ github.event.inputs.script_b64 }}" | base64 -d > ipxe/boot.ipxe
+          head -n 5 ipxe/boot.ipxe
+
+      - name: Build EFI binary
+        working-directory: ipxe/src
+        run: |
+          make -j"$(nproc)" bin-x86_64-efi/ipxe.efi EMBED=../boot.ipxe
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipxe-efi
+          path: ipxe/src/bin-x86_64-efi/ipxe.efi
+          if-no-files-found: error
